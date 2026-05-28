@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Eligibility Calculator – LendingLeaf</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --green: #2d7a4f;
+            --green-light: #3a9e67;
+            --green-bg: #f0faf4;
+            --green-border: #c3e6d2;
+            --dark: #0f2419;
+            --text: #1e3a2a;
+            --muted: #5a7a68;
+            --border: #d4e8dc;
+            --white: #ffffff;
+            --card-bg: #ffffff;
+            --shadow: 0 2px 16px rgba(45, 122, 79, 0.08);
+            --shadow-md: 0 4px 24px rgba(45, 122, 79, 0.14);
+            --radius: 14px;
+            --radius-sm: 8px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f7fbf9;
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 8px rgba(45, 122, 79, 0.06);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--green);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .logo-text {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.2rem;
+            color: var(--dark);
+        }
+
+        .logo-text span {
+            color: var(--green);
+        }
+
+        /* HERO STRIP */
+        .hero-strip {
+            background: linear-gradient(135deg, var(--green) 0%, #1a5c38 100%);
+            color: white;
+            text-align: center;
+            padding: 36px 24px 28px;
+        }
+
+        .hero-strip h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .hero-strip p {
+            font-size: 0.95rem;
+            opacity: 0.85;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .trust-badges {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* LAYOUT */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 16px 48px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* CARD */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-head {
+            background: var(--green-bg);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--green-border);
+        }
+
+        .card-head h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--green);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* FORM INPUTS */
+        .field {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        label .val {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--green);
+            background: var(--green-bg);
+            padding: 2px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--green-border);
+        }
+
+        /* SLIDER */
+        input[type=range] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 3px;
+            background: var(--green-border);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 2px 6px rgba(45, 122, 79, 0.4);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .slider-wrap {
+            position: relative;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* SELECT */
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text);
+            background: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a68' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+
+        /* TOGGLE CHIPS */
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--muted);
+            background: white;
+            user-select: none;
+        }
+
+        .chip.active {
+            background: var(--green);
+            border-color: var(--green);
+            color: white;
+        }
+
+        /* SUMMARY BOX */
+        .summary-box {
+            background: linear-gradient(135deg, var(--green) 0%, #1a5c38 100%);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            color: white;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .sum-item {}
+
+        .sum-item .sum-lbl {
+            font-size: 0.72rem;
+            opacity: 0.75;
+            margin-bottom: 2px;
+        }
+
+        .sum-item .sum-val {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        /* RESULTS */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .results-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .count-tag {
+            background: var(--green-bg);
+            border: 1px solid var(--green-border);
+            color: var(--green);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        /* LENDER CARD */
+        .lender-card {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-bottom: 12px;
+            background: white;
+            transition: box-shadow 0.2s, border-color 0.2s;
+            animation: fadeUp 0.3s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .lender-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--green-border);
+        }
+
+        .lender-card.best-match {
+            border-color: var(--green);
+            background: var(--green-bg);
+        }
+
+        .lender-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+
+        .lender-name-wrap {}
+
+        .lender-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .best-tag {
+            font-size: 0.68rem;
+            font-weight: 700;
+            background: var(--green);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .lender-occ {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .roi-badge {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .roi-badge .roi-val {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        .roi-badge .roi-lbl {
+            font-size: 0.68rem;
+            color: var(--muted);
+        }
+
+        .lender-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+
+        .stat {}
+
+        .stat-lbl {
+            font-size: 0.68rem;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .stat-val {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .apply-btn {
+            display: block;
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-align: center;
+        }
+
+        .apply-btn:hover {
+            background: var(--green-light);
+        }
+
+        .apply-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* NO RESULTS */
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+
+        .no-results svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .no-results p {
+            font-size: 0.9rem;
+        }
+
+        /* OS filter */
+        .os-filter {
+            margin-bottom: 0;
+        }
+
+        /* SECTION LABEL */
+        .section-lbl {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        /* DIVIDER */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 0;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 24px;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a class="logo" href="#">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+            </div>
+            <span class="logo-text">Lending<span>Leaf</span></span>
+        </a>
+    </header>
+
+    <div class="hero-strip">
+        <h1>Loan Eligibility Calculator</h1>
+        <p>Instantly find lenders that match your profile — free, no credit impact</p>
+        <div class="trust-badges">
+            <span class="badge">✔ Free</span>
+            <span class="badge">✔ No credit impact</span>
+            <span class="badge">✔ 11 Lenders</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="grid">
+
+            <!-- LEFT: CONTROLS -->
+            <div>
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Your Profile</h2>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Loan Amount -->
+                        <div class="field">
+                            <label>Loan Amount <span class="val" id="lbl-amount">₹1,00,000</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-amount" min="5000" max="2000000" step="5000" value="100000">
+                                <div class="slider-labels"><span>₹5K</span><span>₹20L</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Income -->
+                        <div class="field">
+                            <label>Monthly Income <span class="val" id="lbl-income">₹30,000</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-income" min="8000" max="200000" step="1000" value="30000">
+                                <div class="slider-labels"><span>₹8K</span><span>₹2L</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Age -->
+                        <div class="field">
+                            <label>Age <span class="val" id="lbl-age">30 yrs</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-age" min="18" max="65" step="1" value="30">
+                                <div class="slider-labels"><span>18</span><span>65</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Tenure -->
+                        <div class="field">
+                            <label>Tenure <span class="val" id="lbl-tenure">24 months</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-tenure" min="2" max="72" step="1" value="24">
+                                <div class="slider-labels"><span>2 mo</span><span>72 mo</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Credit Score -->
+                        <div class="field">
+                            <label>Credit Score <span class="val" id="lbl-cibil">700</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-cibil" min="300" max="900" step="10" value="700">
+                                <div class="slider-labels"><span>300</span><span>900</span></div>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <!-- Occupation -->
+                        <div class="field">
+                            <div class="section-lbl">Occupation</div>
+                            <div class="chips" id="occ-chips">
+                                <span class="chip active" data-val="salaried">Salaried</span>
+                                <span class="chip" data-val="self-employed">Self Employed</span>
+                            </div>
+                        </div>
+
+                        <!-- OS Preference -->
+                        <div class="field os-filter">
+                            <div class="section-lbl">App Platform</div>
+                            <div class="chips" id="os-chips">
+                                <span class="chip active" data-val="any">Any</span>
+                                <span class="chip" data-val="ios">iOS</span>
+                                <span class="chip" data-val="android">Android</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: RESULTS -->
+            <div>
+                <!-- Summary -->
+                <div class="summary-box">
+                    <div class="sum-item">
+                        <div class="sum-lbl">Loan Amount</div>
+                        <div class="sum-val" id="sum-amount">₹1,00,000</div>
+                    </div>
+                    <div class="sum-item">
+                        <div class="sum-lbl">Est. Monthly EMI*</div>
+                        <div class="sum-val" id="sum-emi">₹4,920</div>
+                    </div>
+                    <div class="sum-item">
+                        <div class="sum-lbl">Eligible Lenders</div>
+                        <div class="sum-val" id="sum-count">11</div>
+                    </div>
+                    <div class="sum-item">
+                        <div class="sum-lbl">Lowest Rate</div>
+                        <div class="sum-val" id="sum-roi">0.60% / mo</div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="results-header">
+                            <h2>Matching Lenders</h2>
+                            <span class="count-tag" id="count-tag">11 found</span>
+                        </div>
+                    </div>
+                    <div class="card-body" id="results-list">
+                        <!-- JS renders here -->
+                    </div>
+                </div>
+
+                <p class="disclaimer">* EMI is indicative, calculated at the lender's lowest interest rate. Actual rates
+                    and eligibility are subject to lender's approval. LendingLeaf is a loan aggregator, not a lender.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ── LENDER DATA ─────────────────────────────────────────────────────────────
+        const LENDERS = [
+            {
+                name: "Moneyview",
+                amountMin: 5000, amountMax: 1000000,
+                ageMin: 18, ageMax: 60,
+                incomeMin: 13000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 1.2, roiMax: 3.3,
+                processingFee: "2% + GST",
+                tenureMin: 3, tenureMax: 72,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Insta Money",
+                amountMin: 5000, amountMax: 100000,
+                ageMin: 21, ageMax: 55,
+                incomeMin: 12000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 2, roiMax: 4,
+                processingFee: "0–6% + GST",
+                tenureMin: 3, tenureMax: 12,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Navi",
+                amountMin: 10000, amountMax: 2000000,
+                ageMin: 21, ageMax: 65,
+                incomeMin: 15000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 0.8, roiMax: 3.7,
+                processingFee: "3–4% + GST",
+                tenureMin: 3, tenureMax: 72,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Fatak Pay",
+                amountMin: 20000, amountMax: 500000,
+                ageMin: 21, ageMax: 55,
+                incomeMin: 12000,
+                occupation: ["salaried"],
+                roiMin: 1, roiMax: 4,
+                processingFee: "2.5% + GST",
+                tenureMin: 3, tenureMax: 36,
+                cibilMin: 700,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Bharat Loan",
+                amountMin: 5000, amountMax: 120000,
+                ageMin: 25, ageMax: 99,
+                incomeMin: 30000,
+                occupation: ["salaried"],
+                roiMin: 1, roiMax: 2.9,
+                processingFee: "2% + GST",
+                tenureMin: 2, tenureMax: 12,
+                cibilMin: 650,
+                os: ["android"],
+            },
+            {
+                name: "Kubiz",
+                amountMin: 10000, amountMax: 100000,
+                ageMin: 19, ageMax: 55,
+                incomeMin: 15000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 1.5, roiMax: 1.5,
+                processingFee: "2–5%",
+                tenureMin: 3, tenureMax: 4,
+                cibilMin: 650,
+                os: ["android"],
+            },
+            {
+                name: "Flex Salary",
+                amountMin: 5000, amountMax: 300000,
+                ageMin: 21, ageMax: 99,
+                incomeMin: 8000,
+                occupation: ["salaried"],
+                roiMin: 1.5, roiMax: 3.5,
+                processingFee: "4.25% + GST",
+                tenureMin: 10, tenureMax: 36,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "PayMe",
+                amountMin: 2000, amountMax: 200000,
+                ageMin: 18, ageMax: 56,
+                incomeMin: 15000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 1.5, roiMax: 3.5,
+                processingFee: "10% + GST",
+                tenureMin: 3, tenureMax: 24,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Olyv",
+                amountMin: 5000, amountMax: 500000,
+                ageMin: 21, ageMax: 58,
+                incomeMin: 15000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 1.7, roiMax: 1.8,
+                processingFee: "3% + GST",
+                tenureMin: 2, tenureMax: 24,
+                cibilMin: 650,
+                os: ["android"],
+            },
+            {
+                name: "Hero Fincorp",
+                amountMin: 50000, amountMax: 500000,
+                ageMin: 21, ageMax: 58,
+                incomeMin: 15000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 0.60, roiMax: 0.73,
+                processingFee: "3.3% + GST",
+                tenureMin: 12, tenureMax: 48,
+                cibilMin: 650,
+                os: ["ios", "android"],
+            },
+            {
+                name: "Poonawalla Fincorp",
+                amountMin: 50000, amountMax: 500000,
+                ageMin: 21, ageMax: 58,
+                incomeMin: 10000,
+                occupation: ["salaried", "self-employed"],
+                roiMin: 1, roiMax: 3,
+                processingFee: "2.5% + GST",
+                tenureMin: 3, tenureMax: 6,
+                cibilMin: 720,
+                os: ["android"],
+            },
+        ];
+
+        // ── STATE ────────────────────────────────────────────────────────────────────
+        const state = {
+            amount: 100000,
+            income: 30000,
+            age: 30,
+            tenure: 24,
+            cibil: 700,
+            occ: "salaried",
+            os: "any",
+        };
+
+        // ── HELPERS ──────────────────────────────────────────────────────────────────
+        function fmt(n) {
+            if (n >= 100000) return "₹" + (n / 100000).toFixed(n % 100000 === 0 ? 0 : 1) + "L";
+            if (n >= 1000) return "₹" + (n / 1000).toFixed(0) + "K";
+            return "₹" + n;
+        }
+        function fmtFull(n) {
+            return "₹" + Number(n).toLocaleString("en-IN");
+        }
+        function calcEMI(P, roiPct, months) {
+            const r = roiPct / 100;
+            if (r === 0) return P / months;
+            return P * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+        }
+
+        // ── FILTER & RENDER ──────────────────────────────────────────────────────────
+        function getEligible() {
+            return LENDERS.filter(l => {
+                if (state.amount < l.amountMin || state.amount > l.amountMax) return false;
+                if (state.age < l.ageMin || state.age > l.ageMax) return false;
+                if (state.income < l.incomeMin) return false;
+                if (state.tenure < l.tenureMin || state.tenure > l.tenureMax) return false;
+                if (state.cibil < l.cibilMin) return false;
+                if (!l.occupation.includes(state.occ)) return false;
+                if (state.os !== "any" && !l.os.includes(state.os)) return false;
+                return true;
+            }).sort((a, b) => a.roiMin - b.roiMin);
+        }
+
+        function render() {
+            const eligible = getEligible();
+
+            // summary
+            document.getElementById("sum-amount").textContent = fmtFull(state.amount);
+            document.getElementById("sum-count").textContent = eligible.length;
+
+            if (eligible.length > 0) {
+                const best = eligible[0];
+                const emi = calcEMI(state.amount, best.roiMin, state.tenure);
+                document.getElementById("sum-emi").textContent = fmtFull(Math.round(emi));
+                document.getElementById("sum-roi").textContent = best.roiMin.toFixed(2) + "% / mo";
+            } else {
+                document.getElementById("sum-emi").textContent = "—";
+                document.getElementById("sum-roi").textContent = "—";
+            }
+
+            document.getElementById("count-tag").textContent = eligible.length + " found";
+
+            const list = document.getElementById("results-list");
+            if (eligible.length === 0) {
+                list.innerHTML = `<div class="no-results">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="20" stroke="#2d7a4f" stroke-width="2"/>
+        <path d="M16 24h16M24 16v16" stroke="#2d7a4f" stroke-width="2" stroke-linecap="round" transform="rotate(45 24 24)"/>
+      </svg>
+      <p>No lenders match your current profile.<br>Try adjusting loan amount, age, or score.</p>
+    </div>`;
+                return;
+            }
+
+            list.innerHTML = eligible.map((l, i) => {
+                const isBest = i === 0;
+                const emi = Math.round(calcEMI(state.amount, l.roiMin, state.tenure));
+                const roiStr = l.roiMin === l.roiMax
+                    ? l.roiMin + "%/mo"
+                    : l.roiMin + "–" + l.roiMax + "%/mo";
+                return `<div class="lender-card ${isBest ? 'best-match' : ''}" style="animation-delay:${i * 0.05}s">
+      <div class="lender-top">
+        <div class="lender-name-wrap">
+          <div class="lender-name">
+            ${l.name}
+            ${isBest ? '<span class="best-tag">BEST MATCH</span>' : ''}
+          </div>
+          <div class="lender-occ">${l.occupation.map(o => o.charAt(0).toUpperCase() + o.slice(1)).join(' & ')} • ${l.os.map(o => o.toUpperCase()).join('/')}</div>
+        </div>
+        <div class="roi-badge">
+          <div class="roi-val">${roiStr}</div>
+          <div class="roi-lbl">Interest Rate</div>
+        </div>
+      </div>
+      <div class="lender-stats">
+        <div class="stat">
+          <div class="stat-lbl">Loan Range</div>
+          <div class="stat-val">${fmt(l.amountMin)} – ${fmt(l.amountMax)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Tenure</div>
+          <div class="stat-val">${l.tenureMin}–${l.tenureMax} mo</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Processing Fee</div>
+          <div class="stat-val">${l.processingFee}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Min. CIBIL</div>
+          <div class="stat-val">${l.cibilMin}+</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Min. Income</div>
+          <div class="stat-val">₹${(l.incomeMin / 1000).toFixed(0)}K/mo</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Est. EMI</div>
+          <div class="stat-val">${fmtFull(emi)}/mo</div>
+        </div>
+      </div>
+      <button class="apply-btn" onclick="applyNow('${l.name}')">Apply Now →</button>
+    </div>`;
+            }).join("");
+        }
+
+        function applyNow(name) {
+            alert("Redirecting to " + name + " application. In production, this links to the lender's apply page.");
+        }
+
+        // ── SLIDER SYNC ──────────────────────────────────────────────────────────────
+        function bindSlider(id, lblId, stateKey, fmtFn) {
+            const el = document.getElementById(id);
+            const lbl = document.getElementById(lblId);
+            el.addEventListener("input", () => {
+                const v = +el.value;
+                state[stateKey] = v;
+                lbl.textContent = fmtFn(v);
+                fillSlider(el);
+                render();
+            });
+            fillSlider(el);
+        }
+
+        function fillSlider(el) {
+            const pct = (el.value - el.min) / (el.max - el.min) * 100;
+            el.style.background = `linear-gradient(to right, #2d7a4f ${pct}%, #c3e6d2 ${pct}%)`;
+        }
+
+        bindSlider("sl-amount", "lbl-amount", "amount", v => fmtFull(v));
+        bindSlider("sl-income", "lbl-income", "income", v => fmtFull(v));
+        bindSlider("sl-age", "lbl-age", "age", v => v + " yrs");
+        bindSlider("sl-tenure", "lbl-tenure", "tenure", v => v + " months");
+        bindSlider("sl-cibil", "lbl-cibil", "cibil", v => v);
+
+        // ── CHIP TOGGLES ─────────────────────────────────────────────────────────────
+        function bindChips(containerId, stateKey) {
+            document.getElementById(containerId).addEventListener("click", e => {
+                const chip = e.target.closest(".chip");
+                if (!chip) return;
+                document.querySelectorAll(`#${containerId} .chip`).forEach(c => c.classList.remove("active"));
+                chip.classList.add("active");
+                state[stateKey] = chip.dataset.val;
+                render();
+            });
+        }
+        bindChips("occ-chips", "occ");
+        bindChips("os-chips", "os");
+
+        // ── INIT ─────────────────────────────────────────────────────────────────────
+        render();
+    </script>
+</body>
+
+</html>
