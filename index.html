@@ -532,7 +532,7 @@
     </header>
 
     <div class="hero-strip">
-        <h1>Loan Eligibility Calculator</h1>
+        <h1>Personal Loan Eligibility Calculator</h1>
         <p>Instantly find lenders that match your profile - free, no credit impact</p>
         <div class="trust-badges">
             <span class="badge">✔ Free</span>
@@ -567,6 +567,15 @@
                             <div class="slider-wrap">
                                 <input type="range" id="sl-income" min="8000" max="200000" step="1000" value="30000">
                                 <div class="slider-labels"><span>₹8K</span><span>₹2L</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Existing EMI -->
+                        <div class="field">
+                            <label>Existing Monthly EMIs <span class="val" id="lbl-existing">₹0</span></label>
+                            <div class="slider-wrap">
+                                <input type="range" id="sl-existing" min="0" max="100000" step="500" value="0">
+                                <div class="slider-labels"><span>₹0</span><span>₹1L</span></div>
                             </div>
                         </div>
 
@@ -627,20 +636,20 @@
                 <!-- Summary -->
                 <div class="summary-box">
                     <div class="sum-item">
-                        <div class="sum-lbl">Loan Amount</div>
-                        <div class="sum-val" id="sum-amount">₹1,00,000</div>
+                        <div class="sum-lbl">Max Eligible Loan*</div>
+                        <div class="sum-val" id="sum-amount">—</div>
                     </div>
                     <div class="sum-item">
-                        <div class="sum-lbl">Est. Monthly EMI*</div>
-                        <div class="sum-val" id="sum-emi">₹4,920</div>
+                        <div class="sum-lbl">Max Affordable EMI</div>
+                        <div class="sum-val" id="sum-emi">—</div>
                     </div>
                     <div class="sum-item">
                         <div class="sum-lbl">Eligible Lenders</div>
-                        <div class="sum-val" id="sum-count">11</div>
+                        <div class="sum-val" id="sum-count">—</div>
                     </div>
                     <div class="sum-item">
                         <div class="sum-lbl">Lowest Rate</div>
-                        <div class="sum-val" id="sum-roi">0.60% / mo</div>
+                        <div class="sum-val" id="sum-roi">—</div>
                     </div>
                 </div>
 
@@ -657,8 +666,9 @@
                     </div>
                 </div>
 
-                <p class="disclaimer">* EMI is indicative, calculated at the lender's lowest interest rate. Actual rates
-                    and eligibility are subject to lender's approval. LendingLeaf is a loan aggregator, not a lender.
+                <p class="disclaimer">* Max Eligible Loan = Net EMI Capacity × ((1+r)ⁿ − 1) / (r × (1+r)ⁿ), where Net
+                    EMI Capacity = (Monthly Income × 50% FOIR) − Existing Monthly EMIs. Results are indicative and
+                    subject to lender approval. LendingLeaf is a loan aggregator, not a lender.
                 </p>
             </div>
 
@@ -804,8 +814,9 @@
 
         // ── STATE ────────────────────────────────────────────────────────────────────
         const state = {
-            amount: 100000,
+            amount: 100000,   // user's desired loan amount (used to filter lenders who can sanction it)
             income: 30000,
+            existing: 0,      // existing monthly EMI obligations
             age: 30,
             tenure: 24,
             cibil: 700,
@@ -828,34 +839,73 @@
             return P * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
         }
 
+        // ── PERSONAL LOAN ELIGIBILITY FORMULA (RBI Standard) ───────────────────────
+        //
+        // Step 1: Max Affordable EMI = (Monthly Income × FOIR) − Existing EMIs
+        //
+        // Step 2: Max Eligible Loan (per lender) =
+        //   Max EMI × ((1+r)^n − 1) / (r × (1+r)^n)
+        //   where r = lender's lowest monthly interest rate / 100
+        //         n = tenure in months
+        //
+        // A lender is shown only if:
+        //   • Computed Max Eligible Loan ≥ lender's minimum loan amount
+        //   • User's requested loan amount ≤ Max Eligible Loan (can they afford it?)
+        //   • Age, occupation, OS, CIBIL, tenure — all pass lender's hard limits
+        //
+        // Lenders are sorted by Max Eligible Loan descending (most you can borrow first).
+        // ─────────────────────────────────────────────────────────────────────────────
+
+        const FOIR = 0.50; // RBI guideline: 50% of income can go toward EMI obligations
+
+        function calcMaxLoan(roiPct, months) {
+            // Reverse EMI formula: given max EMI, rate, tenure → max principal
+            const maxEMI = Math.max(0, (state.income * FOIR) - state.existing);
+            const r = roiPct / 100;
+            if (r === 0) return maxEMI * months;
+            return maxEMI * (Math.pow(1 + r, months) - 1) / (r * Math.pow(1 + r, months));
+        }
+
         // ── FILTER & RENDER ──────────────────────────────────────────────────────────
         function getEligible() {
-            return LENDERS.filter(l => {
-                if (state.amount < l.amountMin || state.amount > l.amountMax) return false;
-                if (state.age < l.ageMin || state.age > l.ageMax) return false;
-                if (state.income < l.incomeMin) return false;
-                if (state.tenure < l.tenureMin || state.tenure > l.tenureMax) return false;
-                if (state.cibil < l.cibilMin) return false;
-                if (!l.occupation.includes(state.occ)) return false;
-                if (state.os !== "any" && !l.os.includes(state.os)) return false;
-                return true;
-            }).sort((a, b) => a.roiMin - b.roiMin);
+            return LENDERS
+                .map(l => {
+                    // Hard disqualifiers
+                    if (!l.occupation.includes(state.occ)) return null;
+                    if (state.os !== "any" && !l.os.includes(state.os)) return null;
+                    if (state.age < l.ageMin || state.age > l.ageMax) return null;
+                    if (state.income < l.incomeMin) return null;
+                    if (state.cibil < l.cibilMin) return null;
+                    if (state.tenure < l.tenureMin || state.tenure > l.tenureMax) return null;
+
+                    // Compute max loan this lender will sanction at their best rate
+                    const maxLoan = Math.floor(calcMaxLoan(l.roiMin, state.tenure));
+
+                    // Lender's own cap and floor
+                    const sanctionAmt = Math.min(maxLoan, l.amountMax);
+                    if (sanctionAmt < l.amountMin) return null;       // can't sanction minimum
+                    if (sanctionAmt < state.amount) return null;       // user wants more than eligible
+
+                    return { ...l, maxLoan: sanctionAmt };
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.maxLoan - a.maxLoan || a.roiMin - b.roiMin);
         }
 
         function render() {
             const eligible = getEligible();
+            const maxEMI = Math.round(Math.max(0, (state.income * FOIR) - state.existing));
 
-            // summary
-            document.getElementById("sum-amount").textContent = fmtFull(state.amount);
+            // Summary box
+            document.getElementById("sum-emi").textContent = fmtFull(maxEMI);
             document.getElementById("sum-count").textContent = eligible.length;
 
             if (eligible.length > 0) {
                 const best = eligible[0];
-                const emi = calcEMI(state.amount, best.roiMin, state.tenure);
-                document.getElementById("sum-emi").textContent = fmtFull(Math.round(emi));
+                document.getElementById("sum-amount").textContent = fmtFull(best.maxLoan);
                 document.getElementById("sum-roi").textContent = best.roiMin.toFixed(2) + "% / mo";
             } else {
-                document.getElementById("sum-emi").textContent = "—";
+                document.getElementById("sum-amount").textContent = "—";
                 document.getElementById("sum-roi").textContent = "—";
             }
 
@@ -868,7 +918,7 @@
         <circle cx="24" cy="24" r="20" stroke="#2d7a4f" stroke-width="2"/>
         <path d="M16 24h16M24 16v16" stroke="#2d7a4f" stroke-width="2" stroke-linecap="round" transform="rotate(45 24 24)"/>
       </svg>
-      <p>No lenders match your current profile.<br>Try adjusting loan amount, age, or score.</p>
+      <p>No lenders match your current profile.<br>Try adjusting loan amount, income, or credit score.</p>
     </div>`;
                 return;
             }
@@ -879,6 +929,7 @@
                 const roiStr = l.roiMin === l.roiMax
                     ? l.roiMin + "%/mo"
                     : l.roiMin + "–" + l.roiMax + "%/mo";
+
                 return `<div class="lender-card ${isBest ? 'best-match' : ''}" style="animation-delay:${i * 0.05}s">
       <div class="lender-top">
         <div class="lender-name-wrap">
@@ -888,9 +939,14 @@
           </div>
           <div class="lender-occ">${l.occupation.map(o => o.charAt(0).toUpperCase() + o.slice(1)).join(' & ')} • ${l.os.map(o => o.toUpperCase()).join('/')}</div>
         </div>
-        <div class="roi-badge">
-          <div class="roi-val">${roiStr}</div>
-          <div class="roi-lbl">Interest Rate</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <div class="roi-badge">
+            <div class="roi-val">${roiStr}</div>
+            <div class="roi-lbl">Interest Rate</div>
+          </div>
+          <div style="background:#f0faf4;border:1px solid #c3e6d2;border-radius:20px;padding:3px 10px">
+            <span style="font-size:0.72rem;font-weight:700;color:#2d7a4f">Max: ${fmtFull(l.maxLoan)}</span>
+          </div>
         </div>
       </div>
       <div class="lender-stats">
@@ -915,7 +971,7 @@
           <div class="stat-val">₹${(l.incomeMin / 1000).toFixed(0)}K/mo</div>
         </div>
         <div class="stat">
-          <div class="stat-lbl">Est. EMI</div>
+          <div class="stat-lbl">Your EMI</div>
           <div class="stat-val">${fmtFull(emi)}/mo</div>
         </div>
       </div>
@@ -964,6 +1020,7 @@
 
         bindSlider("sl-amount", "lbl-amount", "amount", v => fmtFull(v));
         bindSlider("sl-income", "lbl-income", "income", v => fmtFull(v));
+        bindSlider("sl-existing", "lbl-existing", "existing", v => fmtFull(v));
         bindSlider("sl-age", "lbl-age", "age", v => v + " yrs");
         bindSlider("sl-tenure", "lbl-tenure", "tenure", v => v + " months");
         bindSlider("sl-cibil", "lbl-cibil", "cibil", v => v);
