@@ -533,7 +533,7 @@
 
     <div class="hero-strip">
         <h1>Loan Eligibility Calculator</h1>
-        <p>Instantly find lenders that match your profile — free, no credit impact</p>
+        <p>Instantly find lenders that match your profile - free, no credit impact</p>
         <div class="trust-badges">
             <span class="badge">✔ Free</span>
             <span class="badge">✔ No credit impact</span>
@@ -924,8 +924,23 @@
             }).join("");
         }
 
+        const LENDER_LINKS = {
+            "Moneyview": "https://play.google.com/store/apps/details?id=com.whizdm.moneyview.loans&hl=en_IN&gl=IN",
+            "Insta Money": "https://www.instamoney.app/",
+            "Navi": "https://play.google.com/store/apps/details?id=com.naviapp&hl=en_IN",
+            "Fatak Pay": "https://play.google.com/store/apps/details?id=com.fatakpay&gl=in",
+            "Bharat Loan": "https://play.google.com/store/apps/details?id=com.devmunifin.bharatloan&hl=en_IN",
+            "Kubiz": "https://play.google.com/store/apps/details?id=in.kubiz.app&hl=en_IN",
+            "Flex Salary": "https://play.google.com/store/apps/details?id=com.flexsalary&hl=en_IN&gl=IN",
+            "PayMe": "https://play.google.com/store/apps/details?id=io.attabot.app.paymeindia&hl=en_IN&gl=IN",
+            "Olyv": "https://play.google.com/store/apps/details?id=in.rebase.app&hl=en_IN&gl=IN",
+            "Hero Fincorp": "https://loans.apps.herofincorp.com/en/personal-loan?utm_source=google&utm_medium=cpc&utm_campaign=PFX_HFC2.0_Search_1.0_FS_Serv_Brand_tCPA_IND_250725|02IDCT&utm_term=Search_Brand_Core_Phrase_270325&utm_content=hero%20fine%20corp_p|c&gad_source=1&gad_campaignid=22834486739&gbraid=0AAAAA-vXkX797Ex8Rk0FoK6X_mCl-qCeh&gclid=Cj0KCQjwz9_QBhD_ARIsADnSCfDwOsqTQkmjJhXJYI0gv3leMlf-hAzksXxNQaEJRTbRZNgDihlLnowaAv4WEALw_wcB",
+            "Poonawalla Fincorp": "https://play.google.com/store/apps/details?id=com.poonawallafincorp.loan.emi.payment.card.upi.mf&hl=en_IN",
+        };
+
         function applyNow(name) {
-            alert("Redirecting to " + name + " application. In production, this links to the lender's apply page.");
+            const url = LENDER_LINKS[name];
+            if (url) window.open(url, "_blank", "noopener");
         }
 
         // ── SLIDER SYNC ──────────────────────────────────────────────────────────────
