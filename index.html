@@ -88,6 +88,31 @@
             color: var(--green);
         }
 
+        .header-cta {
+            display: block;
+            margin-left: auto;
+            margin-right: 0;
+            background: var(--green);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+            white-space: nowrap
+        }
+
+        .header-cta:hover {
+            transform: scale(1.1);
+        }
+
+        .header-cta:hover {
+            background: var(--green-light)
+        }
+
         /* HERO STRIP */
         .hero-strip {
             background: linear-gradient(135deg, var(--green) 0%, #1a5c38 100%);
@@ -529,6 +554,9 @@
             </div>
             <span class="logo-text">Lending<span>Leaf</span></span>
         </a>
+        <button class="header-cta" onclick="window.open('https://lendingleaf.in/loans/personal-loan','_blank')">Apply
+            for Personal Loan
+            →</button>
     </header>
 
     <div class="hero-strip">
